@@ -96,6 +96,35 @@ class TabManager {
       return;
     }
     
+    // LPレプリカタブの処理
+    if (tabId === 'lp-replica') {
+      console.log('[DEBUG] LPレプリカタブがクリックされました');
+      console.log('[DEBUG] 現在のlpReplicaManager状態:', !!window.lpReplicaManager);
+      console.log('[DEBUG] lpReplicaクラス状態:', !!window.lpReplica);
+      
+      // LPレプリカマネージャーを安全に初期化
+      if (!window.lpReplicaManager && window.lpReplica) {
+        try {
+          console.log('[DEBUG] 新しいLPレプリカマネージャーを作成します');
+          window.lpReplicaManager = new window.lpReplica.Manager();
+          console.log('[DEBUG] LPレプリカマネージャーの作成が完了しました');
+        } catch (error) {
+          console.error('[ERROR] LPレプリカマネージャーの作成に失敗:', error);
+          alert('LPレプリカの初期化に失敗しました: ' + error.message);
+          return;
+        }
+      } else if (window.lpReplicaManager) {
+        console.log('[DEBUG] 既存のLPレプリカマネージャーを使用します');
+        // 既存マネージャーでもレプリカ存在チェックを実行
+        console.log('[DEBUG] 既存マネージャーでレプリカ存在チェックを実行');
+        window.lpReplicaManager.checkReplicaExists();
+      } else {
+        console.error('[ERROR] window.lpReplicaクラスが見つかりません');
+        alert('LPレプリカ機能が利用できません。ページを再読み込みしてください。');
+        return;
+      }
+    }
+    
     // 各タブの特別な初期化処理
     if (tabId === 'requirements') {
       // 要件定義タブが選択された場合、ファイルの読み込みをリクエスト
@@ -319,6 +348,28 @@ class TabManager {
         console.log('進捗状況タブが再選択されました。コンテンツを更新します');
       }
       return;
+    }
+    
+    // LPレプリカタブが選択された場合の初期化処理
+    if (tabId === 'lp-replica') {
+      console.log('[DEBUG] selectTab: LPレプリカタブが選択されました');
+      // LPレプリカマネージャーを安全に初期化
+      setTimeout(() => {
+        if (!window.lpReplicaManager && window.lpReplica) {
+          try {
+            console.log('[DEBUG] selectTab: LPレプリカマネージャーを初期化します');
+            window.lpReplicaManager = new window.lpReplica.Manager();
+            console.log('[DEBUG] selectTab: LPレプリカマネージャーの初期化が完了しました');
+          } catch (error) {
+            console.error('[ERROR] selectTab: LPレプリカマネージャーの初期化に失敗:', error);
+          }
+        } else if (window.lpReplicaManager) {
+          console.log('[DEBUG] selectTab: 既存のLPレプリカマネージャーを使用します');
+          // 既存マネージャーでもレプリカ存在チェックを実行
+          console.log('[DEBUG] selectTab: 既存マネージャーでレプリカ存在チェックを実行');
+          window.lpReplicaManager.checkReplicaExists();
+        }
+      }, 50); // DOM更新後に実行
     }
 
     // 進捗状況タブが選択された場合、SCOPE_PROGRESS.mdの内容を明示的に取得

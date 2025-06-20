@@ -13,3 +13,4 @@ export * from './ScopeManagerMessageHandler';
 export * from './ProjectMessageHandler';
 export * from './SharingMessageHandler';
 export * from './MockupMessageHandler';
+export * from './ReplicaMessageHandler';

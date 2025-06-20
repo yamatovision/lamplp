@@ -35,7 +35,7 @@ try {
   };
 }
 
-// プロンプトURLリスト - 新バックエンドURLに基づく16個のプロンプト
+// プロンプトURLリスト - 新バックエンドURLに基づく17個のプロンプト
 const promptUrls = [
   "http://bluelamp-235426778039.asia-northeast1.run.app/api/prompts/public/cdc2b284c05ebaae2bc9eb1f3047aa39", // ★1要件定義エンジニア
   "http://bluelamp-235426778039.asia-northeast1.run.app/api/prompts/public/8cdfe9875a5ab58ea5cdef0ba52ed8eb", // ★2UIUXデザイナー
@@ -52,7 +52,8 @@ const promptUrls = [
   "http://bluelamp-235426778039.asia-northeast1.run.app/api/prompts/public/868ba99fc6e40d643a02e0e02c5e980a", // ★13GitHub
   "http://bluelamp-235426778039.asia-northeast1.run.app/api/prompts/public/247df2890160a2fa8f6cc0f895413aed", // ★14型エラー解決
   "http://bluelamp-235426778039.asia-northeast1.run.app/api/prompts/public/8c09f971e4a3d020497eec099a53e0a6", // ★15機能追加
-  "http://bluelamp-235426778039.asia-northeast1.run.app/api/prompts/public/af9d922c29beffe1224ac6236d083946"  // ★16リファクタリング
+  "http://bluelamp-235426778039.asia-northeast1.run.app/api/prompts/public/af9d922c29beffe1224ac6236d083946", // ★16リファクタリング
+  "http://bluelamp-235426778039.asia-northeast1.run.app/api/prompts/public/bec7c49d61b5f40d1d325e6b416edf5f"  // ★17LP
 ];
 
 // プロンプト情報マッピング - 新しいプロンプト情報リスト
@@ -72,7 +73,8 @@ const promptInfo = [
   { id: 12, name: "GitHub", icon: "history", category: "★13", description: "Gitを活用した安全なコード管理" },
   { id: 13, name: "型エラー解決", icon: "rule", category: "★14", description: "TypeScript型整合性の確保と最適化" },
   { id: 14, name: "機能追加", icon: "add_circle", category: "★15", description: "新機能の設計と既存システムへの統合" },
-  { id: 15, name: "リファクタリング", icon: "tune", category: "★16", description: "技術的負債の解消と保守性向上" }
+  { id: 15, name: "リファクタリング", icon: "tune", category: "★16", description: "技術的負債の解消と保守性向上" },
+  { id: 16, name: "LP", icon: "web", category: "★17", description: "ランディングページの作成と最適化" }
 ];
 
 /**

@@ -49,6 +49,9 @@ export class ScopeManagerTemplate {
     const sharingPanelScriptUri = webview.asWebviewUri(
       vscode.Uri.joinPath(extensionUri, 'media', 'components', 'sharingPanel', 'sharingPanel.js')
     );
+    const lpReplicaScriptUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(extensionUri, 'media', 'components', 'lpReplica', 'lpReplica.js')
+    );
 
     // Material Iconsの読み込み
     const materialIconsUrl = 'https://fonts.googleapis.com/icon?family=Material+Icons';
@@ -197,18 +200,15 @@ export class ScopeManagerTemplate {
                 </div>
                 <div class="tabs-container">
                   <div class="tab ${activeTabId === 'scope-progress' ? 'active' : ''}" data-tab="scope-progress">進捗状況</div>
-                  <div class="tab ${activeTabId === 'requirements' ? 'active' : ''}" data-tab="requirements">要件定義</div>
                   <div class="tab ${activeTabId === 'files' ? 'active' : ''}" data-tab="files">ファイル</div>
                   <div class="tab ${activeTabId === 'claude-code' ? 'active' : ''}" data-tab="claude-code">ClaudeCode連携</div>
                   <div class="tab ${activeTabId === 'tools' ? 'active' : ''}" data-tab="tools">モックアップギャラリー</div>
+                  <div class="tab ${activeTabId === 'lp-replica' ? 'active' : ''}" data-tab="lp-replica">LPレプリカ</div>
                 </div>
               </div>
               
               <!-- 進捗状況タブコンテンツ -->
               ${this._generateProgressTabContent(activeTabId)}
-
-              <!-- 要件定義タブコンテンツ -->
-              ${this._generateRequirementsTabContent(activeTabId)}
 
               <!-- ファイルブラウザタブコンテンツ -->
               <!-- ファイルブラウザタブコンテンツは削除されました -->
@@ -221,6 +221,9 @@ export class ScopeManagerTemplate {
 
               <!-- ファイルタブコンテンツ -->
               ${this._generateFilesTabContent(activeTabId)}
+
+              <!-- LPレプリカタブコンテンツ -->
+              ${this._generateLPReplicaTabContent(activeTabId)}
             </div>
           </div>
         </div>
@@ -236,6 +239,9 @@ export class ScopeManagerTemplate {
       
       <!-- 共有パネルコンポーネント専用スクリプト -->
       <script type="module" nonce="${nonce}" src="${sharingPanelScriptUri}"></script>
+      
+      <!-- LPレプリカコンポーネント専用スクリプト -->
+      <script type="module" nonce="${nonce}" src="${lpReplicaScriptUri}"></script>
       
       <!-- ファイルブラウザコンポーネント専用スクリプト -->
       <!-- ファイルブラウザのスクリプトは削除済み -->
@@ -376,6 +382,81 @@ export class ScopeManagerTemplate {
         <!-- プロンプトグリッド - 初期表示要素なし、JSで動的に生成 -->
         <div class="prompt-grid">
           <!-- プロンプトカードはJSで動的に生成 -->
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * LPレプリカタブのコンテンツを生成
+   */
+  private static _generateLPReplicaTabContent(activeTabId: string): string {
+    const isActive = activeTabId === 'lp-replica';
+    
+    return `
+      <div id="lp-replica-tab" class="tab-content ${isActive ? 'active' : ''}">
+        <div class="section">
+          <h3>LPレプリカ作成</h3>
+          
+          <!-- レプリカ作成フォーム -->
+          <div class="replica-create-form" id="replica-create-form">
+            <div class="input-group">
+              <label for="replica-url">対象ページのURL</label>
+              <input 
+                type="url" 
+                id="replica-url" 
+                class="input" 
+                placeholder="https://example.com" 
+                required
+              />
+            </div>
+            
+            <button id="create-replica-btn" class="button button-primary">
+              <span class="material-icons">content_copy</span>
+              レプリカを作成
+            </button>
+            
+            <div id="replica-status" class="status-message" style="display: none;"></div>
+          </div>
+          
+          <!-- レプリカビューア -->
+          <div class="replica-viewer" id="replica-viewer" style="display: none;">
+            <div class="viewer-header">
+              <h4>レプリカビューア</h4>
+              <div class="viewer-actions">
+                <button id="refresh-replica-btn" class="button button-icon" title="更新">
+                  <span class="material-icons">refresh</span>
+                </button>
+                <button id="open-external-btn" class="button button-icon" title="ブラウザで開く">
+                  <span class="material-icons">open_in_new</span>
+                </button>
+              </div>
+            </div>
+            
+            <div class="viewer-info">
+              <p class="info-text">
+                <span class="material-icons">info</span>
+                要素をAlt+クリック（Mac: Option+クリック）すると、要素情報を取得できます。
+              </p>
+            </div>
+            
+            <iframe 
+              id="replica-iframe" 
+              class="replica-iframe"
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+              style="width: 100%; height: 600px; border: 1px solid var(--app-border);"
+            ></iframe>
+          </div>
+          
+          <!-- 要素情報表示エリア -->
+          <div class="element-info" id="element-info" style="display: none;">
+            <h4>選択された要素情報</h4>
+            <pre id="element-info-content"></pre>
+            <button id="copy-element-info-btn" class="button button-secondary">
+              <span class="material-icons">content_copy</span>
+              情報をコピー
+            </button>
+          </div>
         </div>
       </div>
     `;

@@ -646,6 +646,11 @@ project/
   - 参照: [/docs/plans/planning/ext-noproject-view-auth-2025-01-19.md](/docs/plans/planning/ext-noproject-view-auth-2025-01-19.md)
   - 内容: NoProjectView（プロジェクト未選択画面）へのアクセスをログイン必須にし、全体的なセキュリティを強化
 
+- [ ] **LP-001**: LP作成機能の実装
+  - 目標: 2025-01-25
+  - 参照: [/docs/plans/planning/ext-lp-creation-2025-01-20.md](/docs/plans/planning/ext-lp-creation-2025-01-20.md)
+  - 内容: URLからレプリカを作成し、要素選択支援でLP制作を効率化
+
 - [x] **F-1**: FileSystemServiceの拡張実装
   - 完了日: 2025-05-19
   - 成果:

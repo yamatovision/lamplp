@@ -126,3 +126,56 @@ export const SESSION_ERROR_CODES = {
 } as const;
 
 export type SessionErrorCode = typeof SESSION_ERROR_CODES[keyof typeof SESSION_ERROR_CODES];
+
+// ========== LP作成機能関連 ==========
+
+/**
+ * レプリカ作成結果
+ */
+export interface ReplicaResult {
+  success: boolean;
+  outputDir: string;
+  error?: string;
+  stats?: {
+    htmlFiles: number;
+    cssFiles: number;
+    jsFiles: number;
+    images: number;
+    fonts: number;
+    totalSize: number;
+  };
+}
+
+/**
+ * 要素情報
+ */
+export interface ElementInfo {
+  xpath: string;
+  selector: string;
+  tagName: string;
+  className: string;
+  id: string;
+  text: string;
+  textLines: Array<{
+    text: string;
+    length: number;
+  }>;
+  html: string;
+  styles: {
+    fontSize: string;
+    color: string;
+    backgroundColor: string;
+    fontWeight: string;
+    fontFamily: string;
+    textAlign: string;
+    lineHeight: string;
+    padding: string;
+    margin: string;
+  };
+  bounds: {
+    width: number;
+    height: number;
+    top: number;
+    left: number;
+  };
+}

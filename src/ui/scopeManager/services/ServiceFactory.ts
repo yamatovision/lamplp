@@ -364,7 +364,14 @@ export class ServiceFactory {
           'deleteFromHistory',     // 履歴削除コマンド
           'copyCommand',           // コマンドコピーコマンド
           'copyToClipboard',       // クリップボードコピーコマンド
-          'refreshFileBrowser'     // ファイルブラウザ更新コマンド
+          'refreshFileBrowser',    // ファイルブラウザ更新コマンド
+          // レプリカ関連コマンド
+          'replicaCreate',         // レプリカ作成コマンド
+          'replicaCheck',          // レプリカ存在確認コマンド
+          'replicaOpen',           // レプリカを開くコマンド
+          'replicaCopyElementInfo',// 要素情報コピーコマンド
+          'replicaGetWebviewUri',  // WebviewURI取得コマンド
+          'loadReplicaContent'     // レプリカコンテンツ読み込みコマンド
         ];
         messageService.registerSpecialCommands(specialCommands);
         Logger.info(`ServiceFactory: ${specialCommands.length}個の特殊コマンドを登録しました`);

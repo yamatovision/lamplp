@@ -24,11 +24,12 @@ export class HtmlTemplateGenerator {
   public static generateCSP(webview: vscode.Webview, nonce: string): string {
     return `
       default-src 'none';
-      style-src ${webview.cspSource} 'unsafe-inline' https://fonts.googleapis.com;
-      font-src https://fonts.gstatic.com;
-      script-src 'nonce-${nonce}';
-      img-src ${webview.cspSource} data:;
-      connect-src ${webview.cspSource};
+      style-src ${webview.cspSource} 'unsafe-inline' https:;
+      font-src ${webview.cspSource} https: data:;
+      script-src 'nonce-${nonce}' 'unsafe-inline' https:;
+      img-src ${webview.cspSource} data: https: http:;
+      connect-src ${webview.cspSource} https:;
+      frame-src ${webview.cspSource} vscode-resource: https: http://localhost:* data:;
     `;
   }
 }

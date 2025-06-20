@@ -385,6 +385,26 @@ export class ScopeManagerPanel extends ProtectedPanel {
               await this._handleReuseHistoryItem(message.fileId);
               break;
               
+            // レプリカ関連コマンド
+            case 'replicaCreate':
+              await this._handleReplicaCreate(message.url);
+              break;
+            case 'replicaCheck':
+              await this._handleReplicaCheck();
+              break;
+            case 'replicaOpen':
+              await this._handleReplicaOpen();
+              break;
+            case 'replicaCopyElementInfo':
+              await this._handleReplicaCopyElementInfo(message.text);
+              break;
+            case 'replicaGetWebviewUri':
+              await this._handleReplicaGetWebviewUri(message.path);
+              break;
+            case 'loadReplicaContent':
+              await this._handleLoadReplicaContent(message.path);
+              break;
+              
             // プロジェクト選択処理は直接ハンドリング（MessageDispatchServiceを使わない）
             case 'selectProject':
               if (message.projectName && message.projectPath) {
@@ -1564,9 +1584,68 @@ export class ScopeManagerPanel extends ProtectedPanel {
   /**
    * リソースを解放
    */
+  /**
+   * ローカルサーバーを起動
+   */
+  private async startLocalServer(htmlPath: string, port: number): Promise<string> {
+    const http = require('http');
+    const url = require('url');
+    
+    const baseDir = path.dirname(htmlPath);
+    
+    const server = http.createServer((req: any, res: any) => {
+      const parsedUrl = url.parse(req.url);
+      let pathname = parsedUrl.pathname;
+      
+      // index.htmlをデフォルトに
+      if (pathname === '/') {
+        pathname = '/index.html';
+      }
+      
+      const filePath = path.join(baseDir, pathname);
+      
+      fs.readFile(filePath, (err: any, data: any) => {
+        if (err) {
+          res.writeHead(404);
+          res.end('Not Found');
+          return;
+        }
+        
+        // Content-Typeを設定
+        const ext = path.extname(filePath);
+        const contentType = {
+          '.html': 'text/html',
+          '.css': 'text/css',
+          '.js': 'text/javascript',
+          '.png': 'image/png',
+          '.jpg': 'image/jpeg',
+          '.jpeg': 'image/jpeg',
+          '.gif': 'image/gif',
+          '.svg': 'image/svg+xml',
+          '.webp': 'image/webp'
+        }[ext] || 'text/plain';
+        
+        res.writeHead(200, { 'Content-Type': contentType });
+        res.end(data);
+      });
+    });
+    
+    server.listen(port);
+    
+    // サーバー情報を保存（後でクリーンアップ用）
+    (this as any)._replicaServer = server;
+    
+    return `http://localhost:${port}/`;
+  }
+
   public dispose(): void {
     if (ScopeManagerPanel.currentPanel === this) {
       ScopeManagerPanel.currentPanel = undefined;
+    }
+    
+    // レプリカサーバーを停止
+    if ((this as any)._replicaServer) {
+      (this as any)._replicaServer.close();
     }
 
     // パネル自体を破棄
@@ -1654,6 +1733,270 @@ export class ScopeManagerPanel extends ProtectedPanel {
       Logger.info('スコープマネージャー: 認証状態監視を開始しました');
     } catch (error) {
       Logger.error('認証状態監視の設定中にエラーが発生しました', error as Error);
+    }
+  }
+
+  /**
+   * レプリカを作成
+   */
+  private async _handleReplicaCreate(url: string): Promise<void> {
+    try {
+      if (!this._projectPath) {
+        this._showError('プロジェクトが選択されていません');
+        return;
+      }
+
+      // ReplicaServiceのインスタンスを取得
+      const { ReplicaService } = require('../../services/ReplicaService');
+      const replicaService = ReplicaService.getInstance(this._extensionPath);
+
+      // 進行状況を送信
+      await this._panel.webview.postMessage({
+        command: 'replicaCreateProgress',
+        message: 'レプリカを作成中...'
+      });
+
+      // レプリカを作成
+      const result = await replicaService.createReplica(url, this._projectPath);
+
+      if (result.success) {
+        // 成功を通知
+        await this._panel.webview.postMessage({
+          command: 'replicaCreateSuccess',
+          success: true,
+          path: result.outputDir,
+          stats: result.stats
+        });
+
+        this._showSuccess('レプリカが作成されました');
+      } else {
+        throw new Error(result.error || 'レプリカの作成に失敗しました');
+      }
+    } catch (error) {
+      Logger.error('レプリカ作成エラー', error as Error);
+      
+      await this._panel.webview.postMessage({
+        command: 'replicaCreateError',
+        error: error instanceof Error ? error.message : 'レプリカ作成中にエラーが発生しました'
+      });
+      
+      this._showError(error instanceof Error ? error.message : 'レプリカ作成中にエラーが発生しました');
+    }
+  }
+
+  /**
+   * レプリカの存在をチェック
+   */
+  private async _handleReplicaCheck(): Promise<void> {
+    try {
+      if (!this._projectPath) {
+        await this._panel.webview.postMessage({
+          command: 'replicaExists',
+          exists: false
+        });
+        return;
+      }
+
+      const { ReplicaService } = require('../../services/ReplicaService');
+      const replicaService = ReplicaService.getInstance(this._extensionPath);
+      
+      const exists = await replicaService.checkReplicaExists(this._projectPath);
+      
+      await this._panel.webview.postMessage({
+        command: 'replicaCheckResult',
+        exists,
+        path: exists ? replicaService.getReplicaPath(this._projectPath) : null
+      });
+    } catch (error) {
+      Logger.error('レプリカチェックエラー', error as Error);
+    }
+  }
+
+  /**
+   * レプリカを外部ブラウザで開く
+   */
+  private async _handleReplicaOpen(): Promise<void> {
+    try {
+      if (!this._projectPath) {
+        this._showError('プロジェクトが選択されていません');
+        return;
+      }
+
+      const { ReplicaService } = require('../../services/ReplicaService');
+      const replicaService = ReplicaService.getInstance(this._extensionPath);
+      
+      const replicaPath = replicaService.getReplicaPath(this._projectPath);
+      
+      // ファイルが存在するかチェック
+      try {
+        await fs.promises.access(replicaPath);
+      } catch {
+        this._showError('レプリカが見つかりません');
+        return;
+      }
+
+      // ファイルURIとして開く
+      const uri = vscode.Uri.file(replicaPath);
+      await vscode.env.openExternal(uri);
+    } catch (error) {
+      Logger.error('レプリカ表示エラー', error as Error);
+      this._showError('レプリカの表示中にエラーが発生しました');
+    }
+  }
+
+  /**
+   * 要素情報をクリップボードにコピー
+   */
+  private async _handleReplicaCopyElementInfo(text: string): Promise<void> {
+    try {
+      await vscode.env.clipboard.writeText(text);
+      
+      // 成功を通知
+      await this._panel.webview.postMessage({
+        command: 'elementInfoCopied'
+      });
+      
+      this._showSuccess('要素情報をコピーしました');
+    } catch (error) {
+      Logger.error('要素情報コピーエラー', error as Error);
+      this._showError('要素情報のコピーに失敗しました');
+    }
+  }
+
+  /**
+   * WebviewURIを取得してフロントエンドに送信
+   */
+  private async _handleReplicaGetWebviewUri(filePath: string): Promise<void> {
+    try {
+      console.log('[DEBUG] WebviewURI変換リクエスト:', filePath);
+      
+      // ファイルが存在するかチェック
+      await fs.promises.access(filePath);
+      
+      // HTMLコンテンツを直接読み込んで、リソースパスを調整
+      const htmlContent = await fs.promises.readFile(filePath, 'utf-8');
+      
+      // ベースディレクトリのURIを取得
+      const baseDir = path.dirname(filePath);
+      const baseDirUri = vscode.Uri.file(baseDir);
+      const baseWebviewUri = this._panel.webview.asWebviewUri(baseDirUri);
+      
+      // HTMLコンテンツ内の相対パスをWebview URIに変換
+      let modifiedHtml = htmlContent;
+      
+      // <base>タグを追加
+      if (!modifiedHtml.includes('<base')) {
+        modifiedHtml = modifiedHtml.replace(
+          /<head>/i,
+          `<head>\n<base href="${baseWebviewUri}/">`
+        );
+      }
+      
+      // link要素のhrefを変換（CSS用）
+      modifiedHtml = modifiedHtml.replace(
+        /<link[^>]+href="([^"]+)"[^>]*>/g,
+        (match, href) => {
+          // 外部URLはそのまま
+          if (href.startsWith('http://') || href.startsWith('https://') || href.startsWith('//')) {
+            return match;
+          }
+          
+          // 相対パスをWebview URIに変換
+          const absolutePath = path.join(baseDir, href);
+          const fileUri = vscode.Uri.file(absolutePath);
+          const webviewUri = this._panel.webview.asWebviewUri(fileUri);
+          return match.replace(href, webviewUri.toString());
+        }
+      );
+      
+      // script要素のsrcを変換
+      modifiedHtml = modifiedHtml.replace(
+        /<script[^>]+src="([^"]+)"[^>]*>/g,
+        (match, src) => {
+          // 外部URLはそのまま
+          if (src.startsWith('http://') || src.startsWith('https://') || src.startsWith('//')) {
+            return match;
+          }
+          
+          // 相対パスをWebview URIに変換
+          const absolutePath = path.join(baseDir, src);
+          const fileUri = vscode.Uri.file(absolutePath);
+          const webviewUri = this._panel.webview.asWebviewUri(fileUri);
+          return match.replace(src, webviewUri.toString());
+        }
+      );
+      
+      // img要素のsrcを変換
+      modifiedHtml = modifiedHtml.replace(
+        /<img[^>]+src="([^"]+)"[^>]*>/g,
+        (match, src) => {
+          // 外部URLはそのまま
+          if (src.startsWith('http://') || src.startsWith('https://') || src.startsWith('//') || src.startsWith('data:')) {
+            return match;
+          }
+          
+          // 相対パスをWebview URIに変換
+          const absolutePath = path.join(baseDir, src);
+          const fileUri = vscode.Uri.file(absolutePath);
+          const webviewUri = this._panel.webview.asWebviewUri(fileUri);
+          return match.replace(src, webviewUri.toString());
+        }
+      );
+      
+      // background-imageなどのCSS内URLも変換
+      modifiedHtml = modifiedHtml.replace(
+        /url\(['"]?(?!https?:|\/\/|data:)([^'")\s]+)['"]?\)/g,
+        (match, url) => {
+          const absolutePath = path.join(baseDir, url);
+          const fileUri = vscode.Uri.file(absolutePath);
+          const webviewUri = this._panel.webview.asWebviewUri(fileUri);
+          return `url('${webviewUri.toString()}')`;
+        }
+      );
+      
+      console.log('[DEBUG] HTMLコンテンツを変換しました（最初の500文字）:', modifiedHtml.substring(0, 500));
+      
+      // ローカルサーバーを起動してHTTP URLを返す
+      const port = 8080 + Math.floor(Math.random() * 1000); // ランダムポート
+      const serverUrl = await this.startLocalServer(filePath, port);
+      
+      // HTTP URLを送信
+      await this._panel.webview.postMessage({
+        command: 'replicaWebviewUri',
+        webviewUri: serverUrl
+      });
+    } catch (error) {
+      console.error('[ERROR] WebviewURI変換エラー:', error);
+      await this._panel.webview.postMessage({
+        command: 'replicaError',
+        error: 'レプリカファイルの読み込みに失敗しました'
+      });
+    }
+  }
+
+  /**
+   * レプリカコンテンツを読み込んで返す（使用されていない - 削除予定）
+   */
+  private async _handleLoadReplicaContent(path: string): Promise<void> {
+    try {
+      // レプリカのHTMLを読み込む
+      const content = await fs.promises.readFile(path, 'utf-8');
+      
+      // base要素を追加してリソースのパスを解決
+      const baseUrl = `vscode-resource:${path.substring(0, path.lastIndexOf('/'))}`;
+      const modifiedContent = content.replace(
+        /<head>/i,
+        `<head>\n<base href="${baseUrl}/">`
+      );
+      
+      // コンテンツをWebviewに送信
+      await this._panel.webview.postMessage({
+        command: 'replicaContentLoaded',
+        content: modifiedContent
+      });
+    } catch (error) {
+      Logger.error('レプリカコンテンツ読み込みエラー', error as Error);
+      this._showError('レプリカの読み込みに失敗しました');
     }
   }
 }
