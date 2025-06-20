@@ -139,6 +139,24 @@ window.lpReplica.Manager = class {
         if (this.elements.copyElementInfoButton) {
             this.elements.copyElementInfoButton.addEventListener('click', () => this.copyElementInfo());
         }
+        
+        // ズームボタン
+        this.zoomLevel = 100;
+        const zoomInBtn = document.getElementById('zoom-in-btn');
+        const zoomOutBtn = document.getElementById('zoom-out-btn');
+        const zoomResetBtn = document.getElementById('zoom-reset-btn');
+        
+        if (zoomInBtn) {
+            zoomInBtn.addEventListener('click', () => this.changeZoom(10));
+        }
+        
+        if (zoomOutBtn) {
+            zoomOutBtn.addEventListener('click', () => this.changeZoom(-10));
+        }
+        
+        if (zoomResetBtn) {
+            zoomResetBtn.addEventListener('click', () => this.resetZoom());
+        }
     }
 
     /**
@@ -390,6 +408,13 @@ window.lpReplica.Manager = class {
             console.log('[DEBUG] WebviewURIを受信:', message.webviewUri);
             this.elements.iframe.src = message.webviewUri;
             console.log('[DEBUG] iframeのsrcを設定しました');
+            
+            // iframeの読み込み完了後にズームを適用
+            this.elements.iframe.onload = () => {
+                setTimeout(() => {
+                    this.applyZoom();
+                }, 100);
+            };
         } else {
             console.error('[ERROR] WebviewURIの設定に失敗:', message);
         }
@@ -474,6 +499,76 @@ window.lpReplica.Manager = class {
         }
     }
 
+    /**
+     * ズームレベルを変更
+     */
+    changeZoom(delta) {
+        this.zoomLevel = Math.max(25, Math.min(200, this.zoomLevel + delta));
+        this.applyZoom();
+    }
+    
+    /**
+     * ズームをリセット
+     */
+    resetZoom() {
+        this.zoomLevel = 100;
+        this.applyZoom();
+    }
+    
+    /**
+     * ズームを適用
+     */
+    applyZoom() {
+        if (this.elements.iframe) {
+            try {
+                // iframeの中身にアクセスして、bodyにtransformを適用
+                const iframeDoc = this.elements.iframe.contentDocument || this.elements.iframe.contentWindow.document;
+                if (iframeDoc && iframeDoc.body) {
+                    const scale = this.zoomLevel / 100;
+                    
+                    // スタイルタグを作成または更新
+                    let styleTag = iframeDoc.getElementById('zoom-style');
+                    if (!styleTag) {
+                        styleTag = iframeDoc.createElement('style');
+                        styleTag.id = 'zoom-style';
+                        iframeDoc.head.appendChild(styleTag);
+                    }
+                    
+                    // CSSを適用
+                    styleTag.textContent = `
+                        body {
+                            transform: scale(${scale});
+                            transform-origin: top left;
+                            width: ${100 / scale}%;
+                            height: ${100 / scale}%;
+                            overflow: auto !important;
+                        }
+                    `;
+                }
+            } catch (error) {
+                // クロスオリジンの場合は、iframe自体を変形させる
+                console.warn('iframe内のコンテンツにアクセスできません。代替方法を使用します。');
+                const scale = this.zoomLevel / 100;
+                this.elements.iframe.style.transform = `scale(${scale})`;
+                this.elements.iframe.style.transformOrigin = 'top left';
+                this.elements.iframe.style.width = `${100 / scale}%`;
+                this.elements.iframe.style.height = `${100 / scale}%`;
+            }
+            
+            // ズームレベル表示を更新
+            const zoomLevelDisplay = document.querySelector('.zoom-level');
+            if (zoomLevelDisplay) {
+                zoomLevelDisplay.textContent = `${this.zoomLevel}%`;
+            }
+            
+            // ズームボタンのtitleも更新
+            const zoomResetBtn = document.getElementById('zoom-reset-btn');
+            if (zoomResetBtn) {
+                zoomResetBtn.title = `${this.zoomLevel}%`;
+            }
+        }
+    }
+    
     /**
      * ステータスメッセージを更新
      */

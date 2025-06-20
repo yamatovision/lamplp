@@ -157,13 +157,14 @@ try {
     // 保存されたプロジェクト状態を復元
     setTimeout(() => stateManager.restoreProjectState(), 100);
 
-    // 要件定義タブがアクティブなら明示的にファイル読み込みをリクエスト
-    const state = stateManager.getState();
-    if (state.activeTab === 'requirements') {
-      setTimeout(() => {
-        vscode.postMessage({ command: 'loadRequirementsFile' });
-      }, 200);
-    }
+    // LP開発専用モード: 常にLPレプリカタブを選択
+    setTimeout(() => {
+      console.log('[LP開発専用モード] LPレプリカタブを自動選択します');
+      // タブマネージャーでLPレプリカタブを選択
+      if (tabManager) {
+        tabManager.selectTab('lp-replica', true);
+      }
+    }, 200);
   });
   
   // メッセージハンドラー

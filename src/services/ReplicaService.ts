@@ -203,6 +203,9 @@ export class ReplicaService {
 (function() {
     let selectedElement = null;
     let overlay = null;
+    let isSelectionMode = false;
+    let currentHoveredElement = null;
+    let hoverOutline = null;
 
     // 要素情報を取得
     function getElementInfo(element) {
@@ -347,9 +350,65 @@ export class ReplicaService {
     // 初期化
     const { content: infoContent, copyButton, closeButton } = createOverlay();
 
+    // ホバー用のアウトライン要素を作成
+    function createHoverOutline() {
+        hoverOutline = document.createElement('div');
+        hoverOutline.style.cssText = 'position: absolute; pointer-events: none; border: 2px dashed #007acc; z-index: 999998; display: none;';
+        document.body.appendChild(hoverOutline);
+    }
+    createHoverOutline();
+
+    // 要素のホバー表示を更新
+    function updateHoverOutline(element) {
+        if (!element || !isSelectionMode) {
+            hoverOutline.style.display = 'none';
+            return;
+        }
+        const rect = element.getBoundingClientRect();
+        hoverOutline.style.display = 'block';
+        hoverOutline.style.left = rect.left + window.scrollX + 'px';
+        hoverOutline.style.top = rect.top + window.scrollY + 'px';
+        hoverOutline.style.width = rect.width + 'px';
+        hoverOutline.style.height = rect.height + 'px';
+    }
+
+    // キーダウンイベント（選択モード開始）
+    document.addEventListener('keydown', function(e) {
+        if ((e.altKey || e.metaKey) && !isSelectionMode) {
+            isSelectionMode = true;
+            document.body.style.cursor = 'crosshair';
+        }
+    });
+
+    // キーアップイベント（選択モード終了）
+    document.addEventListener('keyup', function(e) {
+        if (!e.altKey && !e.metaKey && isSelectionMode) {
+            isSelectionMode = false;
+            document.body.style.cursor = '';
+            updateHoverOutline(null);
+            
+            // オーバーレイが表示されている場合は閉じる
+            if (overlay.style.display !== 'none') {
+                overlay.style.display = 'none';
+                if (selectedElement) {
+                    selectedElement.style.outline = '';
+                    selectedElement = null;
+                }
+            }
+        }
+    });
+
+    // マウスムーブイベント（ホバー表示）
+    document.addEventListener('mousemove', function(e) {
+        if (isSelectionMode) {
+            currentHoveredElement = e.target;
+            updateHoverOutline(currentHoveredElement);
+        }
+    });
+
     // クリックイベント
     document.addEventListener('click', function(e) {
-        if (e.altKey || e.metaKey) {
+        if (isSelectionMode && (e.altKey || e.metaKey)) {
             e.preventDefault();
             e.stopPropagation();
             
@@ -360,8 +419,8 @@ export class ReplicaService {
             infoContent.textContent = formatted;
             overlay.style.display = 'block';
             
-            // ハイライト
-            selectedElement.style.outline = '3px solid #007acc';
+            // ホバーアウトラインを非表示
+            updateHoverOutline(null);
         }
     }, true);
 
@@ -397,12 +456,29 @@ export class ReplicaService {
 
     // ESCキーで閉じる
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && overlay.style.display !== 'none') {
-            overlay.style.display = 'none';
-            if (selectedElement) {
-                selectedElement.style.outline = '';
-                selectedElement = null;
+        if (e.key === 'Escape') {
+            if (overlay.style.display !== 'none') {
+                overlay.style.display = 'none';
+                if (selectedElement) {
+                    selectedElement.style.outline = '';
+                    selectedElement = null;
+                }
             }
+            // 選択モードも解除
+            if (isSelectionMode) {
+                isSelectionMode = false;
+                document.body.style.cursor = '';
+                updateHoverOutline(null);
+            }
+        }
+    });
+
+    // ウィンドウフォーカス喪失時に選択モードを解除
+    window.addEventListener('blur', function() {
+        if (isSelectionMode) {
+            isSelectionMode = false;
+            document.body.style.cursor = '';
+            updateHoverOutline(null);
         }
     });
 })();

@@ -76,6 +76,193 @@ export class ScopeManagerTemplate {
       <link href="${materialIconsUrl}" rel="stylesheet">
       <title>ブルーランプ</title>
       <style>
+        /* LP開発専用モード: タブを非表示 */
+        .tabs-container {
+          display: none !important;
+        }
+        
+        /* LP開発専用モード: プロジェクト表示部分も非表示 */
+        .tabs {
+          display: none !important;
+        }
+        
+        /* LP開発専用モード: 他のタブコンテンツを非表示 */
+        #scope-progress-tab,
+        #files-tab,
+        #claude-code-tab,
+        #tools-tab,
+        #requirements-tab {
+          display: none !important;
+        }
+        
+        /* LP開発専用モード: LPレプリカタブを常に表示 */
+        #lp-replica-tab {
+          display: block !important;
+        }
+        
+        /* LP開発専用モード: カードの上部パディングを削除 */
+        .card {
+          padding-top: 0 !important;
+        }
+        
+        /* LP開発専用モード: セクションの上部マージンを削減 */
+        #lp-replica-tab .section {
+          margin-top: 10px !important;
+        }
+        
+        /* LP開発専用モード: レプリカ作成フォームが非表示の時はビューアを上に詰める */
+        #replica-create-form[style*="display: none"] + #replica-viewer,
+        #replica-create-form:not([style]) + #replica-viewer {
+          margin-top: 0 !important;
+        }
+        
+        /* LP開発専用モード: レプリカビューアのヘッダーも上に詰める */
+        #replica-viewer .viewer-header {
+          margin-top: 0 !important;
+          padding-top: 0 !important;
+        }
+        
+        /* LP開発専用モード: レプリカが存在する場合の調整 */
+        #lp-replica-tab .section:has(#replica-create-form[style*="display: none"]) h3 {
+          display: none !important;
+        }
+        
+        /* LP開発専用モード: レプリカビューアが表示されている時のセクション調整 */
+        #lp-replica-tab .section:has(#replica-viewer[style*="display: block"]) {
+          margin-top: 0 !important;
+          padding-top: 0 !important;
+        }
+        
+        /* LP開発専用モード: iframeを画面いっぱいに表示 */
+        #replica-iframe {
+          height: calc(100vh - 100px) !important;
+          min-height: 500px !important;
+          max-height: calc(100vh - 100px) !important;
+        }
+        
+        /* インラインスタイルを上書き */
+        iframe#replica-iframe[style] {
+          height: calc(100vh - 100px) !important;
+        }
+        
+        /* LP開発専用モード: レプリカビューアコンテナも高さ調整 */
+        #replica-viewer {
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+        }
+        
+        /* LP開発専用モード: コンテンツエリア全体の高さ調整 */
+        .content-area {
+          height: 100vh !important;
+          overflow: hidden !important;
+          max-height: 100vh !important;
+          padding: 0 !important;
+        }
+        
+        .card {
+          height: 100% !important;
+          display: flex !important;
+          flex-direction: column !important;
+          margin-bottom: 0 !important;
+          padding: 0 !important;
+        }
+        
+        #lp-replica-tab {
+          flex: 1 !important;
+          display: flex !important;
+          flex-direction: column !important;
+          height: 100% !important;
+          overflow: hidden !important;
+        }
+        
+        #lp-replica-tab .section {
+          flex: 1 !important;
+          display: flex !important;
+          flex-direction: column !important;
+          height: 100% !important;
+          overflow: hidden !important;
+        }
+        
+        /* tab-contentのデフォルトスタイルを上書き */
+        .tab-content {
+          height: 100% !important;
+          max-height: 100% !important;
+          overflow: hidden !important;
+        }
+        
+        /* レプリカビューアのフレックスボックス調整 */
+        #replica-viewer {
+          flex: 1 !important;
+          overflow: hidden !important;
+        }
+        
+        /* ビューアヘッダーとインフォの高さを固定 */
+        #replica-viewer .viewer-header {
+          flex-shrink: 0;
+          height: 40px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0 10px;
+        }
+        
+        #replica-viewer .viewer-header h4 {
+          margin: 0;
+          font-size: 16px;
+        }
+        
+        #replica-viewer .viewer-info-inline {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          color: var(--app-text-secondary);
+          font-size: 12px;
+          flex: 1;
+          margin: 0 20px;
+        }
+        
+        #replica-viewer .viewer-info-inline .material-icons {
+          font-size: 16px;
+        }
+        
+        #replica-viewer .viewer-actions {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+        }
+        
+        /* ズームボタンのスタイル */
+        #zoom-reset-btn {
+          min-width: 50px;
+          font-size: 12px;
+          font-weight: bold;
+        }
+        
+        .zoom-level {
+          font-size: 12px;
+        }
+        
+        .viewer-actions .divider {
+          width: 1px;
+          height: 20px;
+          background-color: var(--app-border-color);
+          margin: 0 5px;
+        }
+        
+        /* iframeのズーム用ラッパー */
+        .iframe-wrapper {
+          width: 100%;
+          height: 100%;
+          overflow: hidden;
+          position: relative;
+          flex: 1;
+        }
+        
+        #replica-iframe {
+          border: 1px solid var(--app-border) !important;
+        }
+        
         /* VSCodeのネイティブドラッグ&ドロップメッセージを非表示にする */
         .monaco-editor .dnd-overlay, 
         .monaco-editor .dnd-overlay *,
@@ -423,7 +610,21 @@ export class ScopeManagerTemplate {
           <div class="replica-viewer" id="replica-viewer" style="display: none;">
             <div class="viewer-header">
               <h4>レプリカビューア</h4>
+              <div class="viewer-info-inline">
+                <span class="material-icons">info</span>
+                <span class="info-text">要素をAlt+クリック（Mac: Option+クリック）すると、要素情報を取得できます。</span>
+              </div>
               <div class="viewer-actions">
+                <button id="zoom-out-btn" class="button button-icon" title="縮小">
+                  <span class="material-icons">zoom_out</span>
+                </button>
+                <button id="zoom-reset-btn" class="button button-icon" title="100%">
+                  <span class="zoom-level">100%</span>
+                </button>
+                <button id="zoom-in-btn" class="button button-icon" title="拡大">
+                  <span class="material-icons">zoom_in</span>
+                </button>
+                <div class="divider"></div>
                 <button id="refresh-replica-btn" class="button button-icon" title="更新">
                   <span class="material-icons">refresh</span>
                 </button>
@@ -433,19 +634,14 @@ export class ScopeManagerTemplate {
               </div>
             </div>
             
-            <div class="viewer-info">
-              <p class="info-text">
-                <span class="material-icons">info</span>
-                要素をAlt+クリック（Mac: Option+クリック）すると、要素情報を取得できます。
-              </p>
+            <div class="iframe-wrapper">
+              <iframe 
+                id="replica-iframe" 
+                class="replica-iframe"
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+                style="width: 100%; height: 600px; border: 1px solid var(--app-border);"
+              ></iframe>
             </div>
-            
-            <iframe 
-              id="replica-iframe" 
-              class="replica-iframe"
-              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
-              style="width: 100%; height: 600px; border: 1px solid var(--app-border);"
-            ></iframe>
           </div>
           
           <!-- 要素情報表示エリア -->
