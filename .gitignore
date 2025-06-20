@@ -31,3 +31,5 @@ docs/deployment/deploy.md
 # macOS system files
 .DS_Store
 **/.DS_Store
+logs/
+test_verify_api_key.js
